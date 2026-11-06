@@ -1,340 +1,386 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ringette E-Junior Shift Timer</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ringette E-Junior Shift Timer</title>
 
-<style>
-html, body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: black;
-    color: white;
-    font-family: Arial, sans-serif;
-}
+    <style>
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
 
-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    transition: background-color 0.2s;
-}
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
 
-#timer {
-    font-size: min(32vw, 260px);
-    font-weight: bold;
-    line-height: 1;
-    user-select: none;
-}
+        #timer {
+            font-size: min(32vw, 260px);
+            font-weight: bold;
+            line-height: 1;
+            user-select: none;
+        }
 
-#changeText {
-    position: fixed;
-    top: 8%;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: min(12vw, 120px);
-    font-weight: bold;
-    color: white;
-    display: none;
-    text-shadow:
-        0 0 20px black,
-        0 0 40px black;
-    pointer-events: none;
-}
+        .controls {
+            margin-top: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.8rem;
+        }
 
-.controls {
-    margin-top: 2rem;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.8rem;
-}
+        button {
+            font-size: 1.8rem;
+            padding: 0.5rem 1.2rem;
+            background: #bbb;
+            border: 0.5rem solid #777;
+            border-radius: 12px;
+            cursor: pointer;
+        }
 
-button {
-    font-size: 1.8rem;
-    padding: 0.5rem 1.2rem;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-}
+        .main-controls {
+            margin-top: 2rem;
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+        }
 
-.start { background:#2ecc71; }
-.pause { background:#f1c40f; }
-.reset { background:#3498db; }
+        .main-controls button {
+            width: min(30vw, 180px);
+            height: min(30vw, 180px);
+            padding: 0;
+            border-radius: 50%;
+            font-size: min(5vw, 1.8rem);
+            font-weight: bold;
+        }
 
-.orange {
-    background:#ff8800;
-}
+        .adjust-controls {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+        }
 
-.red {
-    background:#cc0000;
-}
+        .adjust-controls button {
+            font-size: 1rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 8px;
+        }
 
-.flash {
-    animation: flash 0.5s infinite;
-}
+        .start {
+            background: #2ecc71;
+            border-color: #1f8f4e;
+        }
 
-@keyframes flash {
-    0%,100% { background:#aa0000; }
-    50% { background:#ff0000; }
-}
-</style>
+        .pause {
+            background: #f1c40f;
+            border-color: #a98a0a;
+        }
+
+        .reset {
+            background: #3498db;
+            border-color: #22709f;
+        }
+
+        .orange {
+            background: #ff8800;
+        }
+
+        .red {
+            background: #cc0000;
+        }
+
+        .flash {
+            animation: flash 0.5s infinite;
+        }
+
+        @keyframes flash {
+
+            0%,
+            100% {
+                background: #aa0000;
+            }
+
+            50% {
+                background: #ff0000;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<div id="changeText">CHANGE</div>
-<div id="timer">0.0</div>
+    <div id="timer">0.0</div>
 
-<div class="controls">
-    <button class="start" onclick="startTimer()">Start</button>
-    <button class="pause" onclick="pauseTimer()">Pause</button>
-    <button class="reset" onclick="resetTimer()">Reset</button>
-    <button onclick="adjustTime(-1)">-1 s</button>
-    <button onclick="adjustTime(1)">+1 s</button>
-</div>
+    <div class="main-controls">
+        <button id="toggleBtn" class="start" onclick="toggleTimer()">Start</button>
+        <button class="reset" onclick="resetTimer()">Reset</button>
+    </div>
 
-<script>
+    <div class="adjust-controls">
+        <button onclick="adjustTime(-1)">-1 s</button>
+        <button onclick="adjustTime(1)">+1 s</button>
+    </div>
 
-let running = false;
-let startTime = 0;
-let elapsed = 0;
+    <script>
 
-let wakeLock = null;
+        let running = false;
+        let startTime = 0;
+        let elapsed = 0;
 
-let beep50Played = false;
-let alarm70Played = false;
+        let wakeLock = null;
 
-const timerEl = document.getElementById("timer");
-const changeEl = document.getElementById("changeText");
+        let beep50Played = false;
+        let alarm70Played = false;
 
-function shortBeep() {
+        const timerEl = document.getElementById("timer");
+        const toggleEl = document.getElementById("toggleBtn");
 
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        function shortBeep() {
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-    osc.type = "sine";
-    osc.frequency.value = 900;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+            osc.type = "sine";
+            osc.frequency.value = 900;
 
-    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
 
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
-}
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
 
-function loudAlarm() {
-
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-
-    for (let i = 0; i < 6; i++) {
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = "square";
-        osc.frequency.value = 1200;
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        const t = ctx.currentTime + i * 0.25;
-
-        gain.gain.setValueAtTime(0.4, t);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-
-        osc.start(t);
-        osc.stop(t + 0.2);
-    }
-}
-
-function updateDisplay() {
-
-    timerEl.textContent = elapsed.toFixed(1);
-
-    document.body.classList.remove(
-        "orange",
-        "red",
-        "flash"
-    );
-
-    if (elapsed >= 70) {
-
-        document.body.classList.add(
-            "red",
-            "flash"
-        );
-
-        if (!alarm70Played) {
-            alarm70Played = true;
-            loudAlarm();
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
         }
 
-    } else if (elapsed >= 50) {
+        function loudAlarm() {
 
-        document.body.classList.add("orange");
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
-        if (!beep50Played) {
-            beep50Played = true;
-            shortBeep();
-            changeEl.style.display = "block";
+            for (let i = 0; i < 6; i++) {
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = "square";
+                osc.frequency.value = 1200;
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const t = ctx.currentTime + i * 0.25;
+
+                gain.gain.setValueAtTime(0.4, t);
+                gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+
+                osc.start(t);
+                osc.stop(t + 0.2);
+            }
         }
-    }
-}
 
-function update() {
+        function updateDisplay() {
 
-    if (!running) return;
+            timerEl.textContent = elapsed.toFixed(1);
 
-    elapsed =
-        (performance.now() - startTime) / 1000;
+            document.body.classList.remove(
+                "orange",
+                "red",
+                "flash"
+            );
 
-    updateDisplay();
+            if (elapsed >= 70) {
 
-    requestAnimationFrame(update);
-}
-
-function startTimer() {
-
-    if (running) return;
-
-    running = true;
-
-    startTime =
-        performance.now() -
-        elapsed * 1000;
-
-    requestAnimationFrame(update);
-
-    requestWakeLock();
-    requestFullscreen();
-}
-
-function pauseTimer() {
-    running = false;
-}
-
-function resetTimer() {
-
-    running = false;
-
-    elapsed = 0;
-
-    beep50Played = false;
-    alarm70Played = false;
-
-    changeEl.style.display = "none";
-
-    document.body.classList.remove(
-        "orange",
-        "red",
-        "flash"
-    );
-
-    timerEl.textContent = "0.0";
-}
-
-function adjustTime(delta) {
-
-    elapsed =
-        Math.max(0, elapsed + delta);
-
-    if (running) {
-        startTime =
-            performance.now() -
-            elapsed * 1000;
-    }
-
-    updateDisplay();
-}
-
-async function requestWakeLock() {
-
-    try {
-
-        if ("wakeLock" in navigator) {
-
-            wakeLock =
-                await navigator.wakeLock.request(
-                    "screen"
+                document.body.classList.add(
+                    "red",
+                    "flash"
                 );
+
+                if (!alarm70Played) {
+                    alarm70Played = true;
+                    loudAlarm();
+                }
+
+            } else if (elapsed >= 50) {
+
+                document.body.classList.add("orange");
+
+                if (!beep50Played) {
+                    beep50Played = true;
+                    shortBeep();
+                }
+            }
         }
 
-    } catch (e) {
-        console.log(e);
-    }
-}
+        function update() {
 
-async function requestFullscreen() {
+            if (!running) return;
 
-    try {
+            elapsed =
+                (performance.now() - startTime) / 1000;
 
-        if (!document.fullscreenElement) {
+            updateDisplay();
 
-            await document.documentElement
-                .requestFullscreen();
+            requestAnimationFrame(update);
         }
 
-    } catch (e) {
-        console.log(e);
-    }
-}
+        function updateToggle() {
+            toggleEl.textContent = running ? "Pause" : "Start";
+            toggleEl.className = running ? "pause" : "start";
+        }
 
-document.addEventListener(
-    "visibilitychange",
-    async () => {
+        function toggleTimer() {
+            running ? pauseTimer() : startTimer();
+        }
 
-        if (
-            wakeLock &&
-            document.visibilityState === "visible"
-        ) {
+        function startTimer() {
+
+            if (running) return;
+
+            running = true;
+            updateToggle();
+
+            startTime =
+                performance.now() -
+                elapsed * 1000;
+
+            requestAnimationFrame(update);
+
+            requestWakeLock();
+            requestFullscreen();
+        }
+
+        function pauseTimer() {
+            running = false;
+            updateToggle();
+        }
+
+        function resetTimer() {
+
+            running = false;
+            updateToggle();
+
+            elapsed = 0;
+
+            beep50Played = false;
+            alarm70Played = false;
+
+            document.body.classList.remove(
+                "orange",
+                "red",
+                "flash"
+            );
+
+            timerEl.textContent = "0.0";
+        }
+
+        function adjustTime(delta) {
+
+            elapsed =
+                Math.max(0, elapsed + delta);
+
+            if (running) {
+                startTime =
+                    performance.now() -
+                    elapsed * 1000;
+            }
+
+            updateDisplay();
+        }
+
+        async function requestWakeLock() {
 
             try {
-                wakeLock =
-                    await navigator.wakeLock.request(
-                        "screen"
-                    );
-            } catch {}
-        }
-    }
-);
 
-document.addEventListener(
-    "keydown",
-    e => {
+                if ("wakeLock" in navigator) {
 
-        if (e.code === "Space") {
+                    wakeLock =
+                        await navigator.wakeLock.request(
+                            "screen"
+                        );
+                }
 
-            e.preventDefault();
-
-            running
-                ? pauseTimer()
-                : startTimer();
+            } catch (e) {
+                console.log(e);
+            }
         }
 
-        if (e.code === "Enter") {
-            resetTimer();
+        async function requestFullscreen() {
+
+            try {
+
+                if (!document.fullscreenElement) {
+
+                    await document.documentElement
+                        .requestFullscreen();
+                }
+
+            } catch (e) {
+                console.log(e);
+            }
         }
 
-        if (e.code === "ArrowLeft") {
-            adjustTime(-1);
-        }
+        document.addEventListener(
+            "visibilitychange",
+            async () => {
 
-        if (e.code === "ArrowRight") {
-            adjustTime(1);
-        }
-    }
-);
+                if (
+                    wakeLock &&
+                    document.visibilityState === "visible"
+                ) {
 
-</script>
+                    try {
+                        wakeLock =
+                            await navigator.wakeLock.request(
+                                "screen"
+                            );
+                    } catch { }
+                }
+            }
+        );
+
+        document.addEventListener(
+            "keydown",
+            e => {
+
+                if (e.code === "Space") {
+
+                    e.preventDefault();
+
+                    running
+                        ? pauseTimer()
+                        : startTimer();
+                }
+
+                if (e.code === "Enter") {
+                    resetTimer();
+                }
+
+                if (e.code === "ArrowLeft") {
+                    adjustTime(-1);
+                }
+
+                if (e.code === "ArrowRight") {
+                    adjustTime(1);
+                }
+            }
+        );
+
+    </script>
 
 </body>
+
 </html>
